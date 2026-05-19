@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asim — Image Gallery</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0d0d;
+    --surface: #161616;
+    --border: rgba(255,255,255,0.08);
+    --border-hover: rgba(255,255,255,0.2);
+    --text-primary: #f0ede8;
+    --text-muted: rgba(240,237,232,0.45);
+    --accent: #c8a96e;
+    --accent-light: rgba(200,169,110,0.12);
+    --overlay: rgba(13,13,13,0.92);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    padding: 3rem 4rem 2rem;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    border-bottom: 0.5px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 100;
+  }
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    letter-spacing: 0.15em;
+    font-weight: 400;
+    color: var(--text-primary);
+  }
+  .logo span { color: var(--accent); }
+  .header-meta {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* ── CONTROLS ── */
+  .controls {
+    padding: 1.5rem 4rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .filters {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+  .filter-btn {
+    background: transparent;
+    border: 0.5px solid var(--border);
+    color: var(--text-muted);
+    padding: 0.4rem 1rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s ease;
+  }
+  .filter-btn:hover { border-color: var(--border-hover); color: var(--text-primary); }
+  .filter-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0d0d0d;
+    font-weight: 500;
+  }
+  .view-toggle {
+    display: flex;
+    gap: 0.4rem;
+  }
+  .view-btn {
+    width: 34px; height: 34px;
+    background: transparent;
+    border: 0.5px solid var(--border);
+    cursor: pointer;
+    border-radius: 2px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    color: var(--text-muted);
+  }
+  .view-btn:hover, .view-btn.active { border-color: var(--accent); color: var(--accent); }
+  .view-btn svg { width: 14px; height: 14px; fill: currentColor; }
+
+  /* ── GALLERY ── */
+  .gallery-wrap { padding: 2.5rem 4rem 5rem; }
+
+  .gallery {
+    display: grid;
+    gap: 1rem;
+    transition: all 0.4s ease;
+  }
+  .gallery.grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .gallery.grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .gallery.grid-2 { grid-template-columns: repeat(2, 1fr); }
+
+  /* masonry-ish via aspect ratios */
+  .gallery-item {
+    position: relative;
+    overflow: hidden;
+    border-radius: 2px;
+    cursor: pointer;
+    border: 0.5px solid var(--border);
+    background: var(--surface);
+    animation: fadeUp 0.5s ease forwards;
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  .gallery-item.tall { grid-row: span 2; }
+
+  @keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .gallery-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.5s cubic-bezier(0.25,0.46,0.45,0.94), filter 0.4s ease;
+    filter: brightness(0.88) saturate(0.85);
+    min-height: 220px;
+  }
+  .gallery-item:hover img {
+    transform: scale(1.06);
+    filter: brightness(1) saturate(1);
+  }
+
+  .item-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(13,13,13,0.85) 0%, transparent 55%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 1.2rem;
+  }
+  .gallery-item:hover .item-overlay { opacity: 1; }
+
+  .item-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    font-weight: 400;
+    color: #f0ede8;
+    margin-bottom: 0.2rem;
+    transform: translateY(6px);
+    transition: transform 0.3s ease;
+  }
+  .gallery-item:hover .item-title { transform: translateY(0); }
+
+  .item-cat {
+    font-size: 0.62rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    transform: translateY(6px);
+    transition: transform 0.3s ease 0.04s;
+  }
+  .gallery-item:hover .item-cat { transform: translateY(0); }
+
+  .item-expand {
+    position: absolute;
+    top: 0.8rem; right: 0.8rem;
+    width: 28px; height: 28px;
+    background: rgba(13,13,13,0.7);
+    border: 0.5px solid var(--border-hover);
+    border-radius: 2px;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    color: var(--text-primary);
+  }
+  .item-expand svg { width: 12px; height: 12px; fill: currentColor; }
+  .gallery-item:hover .item-expand { opacity: 1; }
+
+  /* ── EMPTY STATE ── */
+  .empty {
+    grid-column: 1/-1;
+    text-align: center;
+    padding: 5rem 0;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+  }
+
+  /* ── LIGHTBOX ── */
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,10,10,0.97);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  .lightbox.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .lb-inner {
+    position: relative;
+    max-width: 90vw;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .lb-img-wrap {
+    position: relative;
+    overflow: hidden;
+    border-radius: 2px;
+    max-width: 100%;
+    max-height: 78vh;
+  }
+  .lb-img-wrap img {
+    display: block;
+    max-width: 80vw;
+    max-height: 78vh;
+    object-fit: contain;
+    opacity: 0;
+    transform: scale(0.97);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+  }
+  .lb-img-wrap img.loaded { opacity: 1; transform: scale(1); }
+
+  .lb-caption {
+    margin-top: 1.2rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  .lb-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.15rem;
+    font-weight: 400;
+    color: var(--text-primary);
+    font-style: italic;
+  }
+  .lb-meta {
+    font-size: 0.68rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .lb-count {
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    margin-top: 0.2rem;
+  }
+
+  .lb-close {
+    position: fixed;
+    top: 1.5rem; right: 2rem;
+    background: transparent;
+    border: 0.5px solid var(--border-hover);
+    color: var(--text-primary);
+    width: 40px; height: 40px;
+    border-radius: 2px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    z-index: 10;
+  }
+  .lb-close:hover { background: var(--surface); border-color: var(--accent); color: var(--accent); }
+
+  .lb-nav {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: 0.5px solid var(--border-hover);
+    color: var(--text-primary);
+    width: 44px; height: 44px;
+    border-radius: 2px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    z-index: 10;
+  }
+  .lb-nav:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+  .lb-nav svg { width: 16px; height: 16px; fill: currentColor; }
+  .lb-prev { left: 1.5rem; }
+  .lb-next { right: 1.5rem; }
+
+  /* ── FILTERS ANIMATION ── */
+  .gallery-item.hidden {
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 1024px) {
+    header, .controls, .gallery-wrap { padding-left: 2rem; padding-right: 2rem; }
+    .gallery.grid-4 { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 768px) {
+    header { padding: 1.5rem 1.5rem 1.2rem; }
+    .logo { font-size: 1.4rem; }
+    .controls, .gallery-wrap { padding-left: 1.5rem; padding-right: 1.5rem; }
+    .gallery.grid-3, .gallery.grid-4 { grid-template-columns: repeat(2, 1fr); }
+    .gallery.grid-2 { grid-template-columns: 1fr; }
+    .lb-nav { display: none; }
+    .lb-img-wrap img { max-width: 95vw; }
+  }
+  @media (max-width: 480px) {
+    .gallery.grid-3, .gallery.grid-4, .gallery.grid-2 { grid-template-columns: 1fr; }
+    .gallery-item.tall { grid-row: span 1; }
+    header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+  }
+
+  /* ── FILMSTRIP ── */
+  .lb-strip {
+    display: flex;
+    gap: 6px;
+    margin-top: 1rem;
+    overflow-x: auto;
+    max-width: 80vw;
+    scrollbar-width: none;
+  }
+  .lb-strip::-webkit-scrollbar { display: none; }
+  .lb-strip-item {
+    flex-shrink: 0;
+    width: 48px; height: 36px;
+    border-radius: 2px;
+    overflow: hidden;
+    border: 1.5px solid transparent;
+    cursor: pointer;
+    opacity: 0.4;
+    transition: all 0.2s;
+  }
+  .lb-strip-item.active { border-color: var(--accent); opacity: 1; }
+  .lb-strip-item:hover { opacity: 0.8; }
+  .lb-strip-item img { width: 100%; height: 100%; object-fit: cover; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">A<span>SI</span>M</div>
+  <div class="header-meta">Visual Archive — 2024</div>
+</header>
+
+<div class="controls">
+  <div class="filters" id="filters">
+    <button class="filter-btn active" data-cat="all">All</button>
+    <button class="filter-btn" data-cat="nature">Nature</button>
+    <button class="filter-btn" data-cat="architecture">Architecture</button>
+    <button class="filter-btn" data-cat="portrait">Portrait</button>
+    <button class="filter-btn" data-cat="abstract">Abstract</button>
+    <button class="filter-btn" data-cat="travel">Travel</button>
+  </div>
+  <div class="view-toggle">
+    <button class="view-btn active" id="btn-3" title="3 columns">
+      <svg viewBox="0 0 14 14"><rect x="0" y="0" width="4" height="4"/><rect x="5" y="0" width="4" height="4"/><rect x="10" y="0" width="4" height="4"/><rect x="0" y="5" width="4" height="4"/><rect x="5" y="5" width="4" height="4"/><rect x="10" y="5" width="4" height="4"/><rect x="0" y="10" width="4" height="4"/><rect x="5" y="10" width="4" height="4"/><rect x="10" y="10" width="4" height="4"/></svg>
+    </button>
+    <button class="view-btn" id="btn-4" title="4 columns">
+      <svg viewBox="0 0 16 12"><rect x="0" y="0" width="3" height="5"/><rect x="4.3" y="0" width="3" height="5"/><rect x="8.6" y="0" width="3" height="5"/><rect x="13" y="0" width="3" height="5"/><rect x="0" y="6.5" width="3" height="5"/><rect x="4.3" y="6.5" width="3" height="5"/><rect x="8.6" y="6.5" width="3" height="5"/><rect x="13" y="6.5" width="3" height="5"/></svg>
+    </button>
+    <button class="view-btn" id="btn-2" title="2 columns">
+      <svg viewBox="0 0 10 14"><rect x="0" y="0" width="4" height="6"/><rect x="6" y="0" width="4" height="6"/><rect x="0" y="8" width="4" height="6"/><rect x="6" y="8" width="4" height="6"/></svg>
+    </button>
+  </div>
+</div>
+
+<div class="gallery-wrap">
+  <div class="gallery grid-3" id="gallery"></div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox">
+  <button class="lb-close" id="lb-close">✕</button>
+  <button class="lb-nav lb-prev" id="lb-prev">
+    <svg viewBox="0 0 16 16"><path d="M10 2 L4 8 L10 14"/></svg>
+  </button>
+  <button class="lb-nav lb-next" id="lb-next">
+    <svg viewBox="0 0 16 16"><path d="M6 2 L12 8 L6 14"/></svg>
+  </button>
+  <div class="lb-inner">
+    <div class="lb-img-wrap">
+      <img id="lb-img" src="" alt="">
+    </div>
+    <div class="lb-caption">
+      <div class="lb-title" id="lb-title"></div>
+      <div class="lb-meta" id="lb-meta"></div>
+      <div class="lb-count" id="lb-count"></div>
+    </div>
+    <div class="lb-strip" id="lb-strip"></div>
+  </div>
+</div>
+
+<script>
+const images = [
+  { id:1,  src:'https://picsum.photos/seed/gallery1/800/600',  thumb:'https://picsum.photos/seed/gallery1/200/150',  title:'Misty Highlands',    cat:'nature',       tall:true  },
+  { id:2,  src:'https://picsum.photos/seed/gallery2/800/600',  thumb:'https://picsum.photos/seed/gallery2/200/150',  title:'Glass Tower',        cat:'architecture', tall:false },
+  { id:3,  src:'https://picsum.photos/seed/gallery3/800/600',  thumb:'https://picsum.photos/seed/gallery3/200/150',  title:'Golden Hour',        cat:'portrait',     tall:false },
+  { id:4,  src:'https://picsum.photos/seed/gallery4/600/900',  thumb:'https://picsum.photos/seed/gallery4/150/200',  title:'Desert Wind',        cat:'travel',       tall:true  },
+  { id:5,  src:'https://picsum.photos/seed/gallery5/800/600',  thumb:'https://picsum.photos/seed/gallery5/200/150',  title:'Chromatic Drift',    cat:'abstract',     tall:false },
+  { id:6,  src:'https://picsum.photos/seed/gallery6/800/600',  thumb:'https://picsum.photos/seed/gallery6/200/150',  title:'Arched Corridors',   cat:'architecture', tall:false },
+  { id:7,  src:'https://picsum.photos/seed/gallery7/800/600',  thumb:'https://picsum.photos/seed/gallery7/200/150',  title:'Tidal Shore',        cat:'nature',       tall:false },
+  { id:8,  src:'https://picsum.photos/seed/gallery8/800/600',  thumb:'https://picsum.photos/seed/gallery8/200/150',  title:'Neon Reflections',   cat:'abstract',     tall:true  },
+  { id:9,  src:'https://picsum.photos/seed/gallery9/800/600',  thumb:'https://picsum.photos/seed/gallery9/200/150',  title:'Quiet Alley',        cat:'travel',       tall:false },
+  { id:10, src:'https://picsum.photos/seed/gallery10/800/600', thumb:'https://picsum.photos/seed/gallery10/200/150', title:'Canopy Light',       cat:'nature',       tall:false },
+  { id:11, src:'https://picsum.photos/seed/gallery11/800/600', thumb:'https://picsum.photos/seed/gallery11/200/150', title:'Soft Gaze',          cat:'portrait',     tall:false },
+  { id:12, src:'https://picsum.photos/seed/gallery12/800/600', thumb:'https://picsum.photos/seed/gallery12/200/150', title:'Brutalist Forms',    cat:'architecture', tall:false },
+  { id:13, src:'https://picsum.photos/seed/gallery13/800/600', thumb:'https://picsum.photos/seed/gallery13/200/150', title:'Morning Ritual',     cat:'portrait',     tall:true  },
+  { id:14, src:'https://picsum.photos/seed/gallery14/800/600', thumb:'https://picsum.photos/seed/gallery14/200/150', title:'Frozen Lake',        cat:'nature',       tall:false },
+  { id:15, src:'https://picsum.photos/seed/gallery15/800/600', thumb:'https://picsum.photos/seed/gallery15/200/150', title:'Winding Road',       cat:'travel',       tall:false },
+  { id:16, src:'https://picsum.photos/seed/gallery16/800/600', thumb:'https://picsum.photos/seed/gallery16/200/150', title:'Liquid Geometry',    cat:'abstract',     tall:false },
+];
+
+let currentCat = 'all';
+let currentIndex = 0;
+let visibleImages = [...images];
+let lbOpen = false;
+
+const gallery = document.getElementById('gallery');
+const lightbox = document.getElementById('lightbox');
+const lbImg = document.getElementById('lb-img');
+const lbTitle = document.getElementById('lb-title');
+const lbMeta = document.getElementById('lb-meta');
+const lbCount = document.getElementById('lb-count');
+const lbStrip = document.getElementById('lb-strip');
+
+function buildGallery(cat) {
+  visibleImages = cat === 'all' ? images : images.filter(i => i.cat === cat);
+  gallery.innerHTML = '';
+
+  if (!visibleImages.length) {
+    gallery.innerHTML = '<div class="empty">No images in this category.</div>';
+    return;
+  }
+
+  visibleImages.forEach((img, idx) => {
+    const item = document.createElement('div');
+    item.className = 'gallery-item' + (img.tall ? ' tall' : '');
+    item.style.animationDelay = (idx * 0.04) + 's';
+    item.innerHTML = `
+      <img src="${img.src}" alt="${img.title}" loading="lazy">
+      <div class="item-overlay">
+        <div class="item-title">${img.title}</div>
+        <div class="item-cat">${img.cat}</div>
+      </div>
+      <div class="item-expand">
+        <svg viewBox="0 0 12 12"><path d="M7 1h4v4M5 7L11 1M1 5v6h6"/></svg>
+      </div>`;
+    item.addEventListener('click', () => openLightbox(idx));
+    gallery.appendChild(item);
+  });
+  buildStrip();
+}
+
+function buildStrip() {
+  lbStrip.innerHTML = '';
+  visibleImages.forEach((img, idx) => {
+    const el = document.createElement('div');
+    el.className = 'lb-strip-item';
+    el.innerHTML = `<img src="${img.thumb}" alt="">`;
+    el.addEventListener('click', () => { currentIndex = idx; updateLightbox(); });
+    lbStrip.appendChild(el);
+  });
+}
+
+function openLightbox(idx) {
+  currentIndex = idx;
+  lightbox.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  lbOpen = true;
+  updateLightbox();
+}
+
+function closeLightbox() {
+  lightbox.classList.remove('open');
+  document.body.style.overflow = '';
+  lbOpen = false;
+}
+
+function updateLightbox() {
+  const img = visibleImages[currentIndex];
+  lbImg.classList.remove('loaded');
+  lbImg.onload = () => lbImg.classList.add('loaded');
+  lbImg.src = img.src;
+  lbImg.alt = img.title;
+  lbTitle.textContent = img.title;
+  lbMeta.textContent = img.cat.charAt(0).toUpperCase() + img.cat.slice(1);
+  lbCount.textContent = (currentIndex + 1) + ' / ' + visibleImages.length;
+  [...lbStrip.children].forEach((el, i) => el.classList.toggle('active', i === currentIndex));
+  const stripEl = lbStrip.children[currentIndex];
+  if (stripEl) stripEl.scrollIntoView({ inline: 'center', behavior: 'smooth' });
+}
+
+document.getElementById('lb-close').addEventListener('click', closeLightbox);
+document.getElementById('lb-prev').addEventListener('click', () => {
+  currentIndex = (currentIndex - 1 + visibleImages.length) % visibleImages.length;
+  updateLightbox();
+});
+document.getElementById('lb-next').addEventListener('click', () => {
+  currentIndex = (currentIndex + 1) % visibleImages.length;
+  updateLightbox();
+});
+
+lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeLightbox(); });
+
+document.addEventListener('keydown', (e) => {
+  if (!lbOpen) return;
+  if (e.key === 'ArrowRight') { currentIndex = (currentIndex+1) % visibleImages.length; updateLightbox(); }
+  if (e.key === 'ArrowLeft')  { currentIndex = (currentIndex-1+visibleImages.length) % visibleImages.length; updateLightbox(); }
+  if (e.key === 'Escape') closeLightbox();
+});
+
+/* swipe support */
+let touchStartX = 0;
+lightbox.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive:true});
+lightbox.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].screenX - touchStartX;
+  if (Math.abs(dx) < 40) return;
+  if (dx < 0) { currentIndex = (currentIndex+1) % visibleImages.length; }
+  else { currentIndex = (currentIndex-1+visibleImages.length) % visibleImages.length; }
+  updateLightbox();
+}, {passive:true});
+
+/* filter buttons */
+document.getElementById('filters').addEventListener('click', e => {
+  const btn = e.target.closest('.filter-btn');
+  if (!btn) return;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentCat = btn.dataset.cat;
+  buildGallery(currentCat);
+});
+
+/* view toggle */
+function setGrid(n) {
+  gallery.className = 'gallery grid-' + n;
+  ['2','3','4'].forEach(x => document.getElementById('btn-'+x).classList.toggle('active', x === String(n)));
+}
+document.getElementById('btn-3').addEventListener('click', () => setGrid(3));
+document.getElementById('btn-4').addEventListener('click', () => setGrid(4));
+document.getElementById('btn-2').addEventListener('click', () => setGrid(2));
+
+buildGallery('all');
+</script>
+</body>
+</html>
