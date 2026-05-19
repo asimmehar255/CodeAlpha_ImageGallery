@@ -17,11 +17,6 @@ Minimal luxury-inspired responsive gallery experience crafted with HTML, CSS & J
 - CSS3
 - Vanilla JavaScript
 
-
-## Screenshots
-
-Add screenshots here.
-
 ## Developer
 
 Asim — Frontend Developer
